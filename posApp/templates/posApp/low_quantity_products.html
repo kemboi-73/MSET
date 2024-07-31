@@ -1,0 +1,30 @@
+{% extends "posApp/base.html" %}
+{% block pageContent %}
+<h4>Low Quantity Products</h4>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Quantity</th>
+            <th>Threshold</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for product in low_quantity_products %}
+        <tr>
+            <td>{{ product.id }}</td>
+            <td>{{ product.code }}</td>
+            <td>{{ product.name }}</td>
+            <td>{{ product.quantity }}</td>
+            <td>{{ product.low_quantity_threshold }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" class="text-center">No low quantity products</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock pageContent %}
