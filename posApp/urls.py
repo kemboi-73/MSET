@@ -17,7 +17,7 @@ urlpatterns = [
     path('delete_category', views.delete_category, name="delete-category"),
     path('products', views.products, name="product-page"),
     path('manage_products', views.manage_products, name="manage_products-page"),
-    path('test', views.test, name="test-page"),
+    # path('test', views.test, name="test-page"),
     path('save_product', views.save_product, name="save-product-page"),
     path('delete_product', views.delete_product, name="delete-product"),
     path('pos', views.pos, name="pos-page"),
@@ -31,6 +31,12 @@ urlpatterns = [
     # path('save_employee', views.save_employee, name="save-employee-page"),
     # path('delete_employee', views.delete_employee, name="delete-employee"),
     # path('view_employee', views.view_employee, name="view-employee-page"),
-    path('save_pos/', views.save_pos, name='save_pos'), 
+    # path('save_pos/', views.save_pos, name='save_pos'), 
     path('low-quantity-products/', low_quantity_products, name='low_quantity_products'),
+
+
+    # if settings.DEBUG:
+    # urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+    # path('filter-pie-chart/', views.filter_pie_chart, name='filter_pie_chart'),
 ]

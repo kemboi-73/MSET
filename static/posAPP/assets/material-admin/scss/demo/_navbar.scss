@@ -2,8 +2,8 @@
 
 .mdc-top-app-bar {
   @include mdc-top-app-bar-fill-color-accessible($content-bg);
-  @include mdc-top-app-bar-icon-ink-color(#000);
-  padding: 7px 20px;
+  @include mdc-top-app-bar-icon-ink-color(#000000);
+  padding: 4px 20px;
   z-index: 9;
   position: static;
   @media(max-width: 320px) {

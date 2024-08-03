@@ -38,50 +38,42 @@ def logoutuser(request):
     return redirect('/')
 
 # Create your views here.
-@login_required
-# def home(request):
-#     now = datetime.now()
-#     current_year = now.strftime("%Y")
-#     current_month = now.strftime("%m")
-#     current_day = now.strftime("%d")
-#     categories = len(Category.objects.all())
-#     products = len(Products.objects.all())
-#     transaction = len(Sales.objects.filter(
-#         date_added__year=current_year,
-#         date_added__month = current_month,
-#         date_added__day = current_day
-#     ))
-#     today_sales = Sales.objects.filter(
-#         date_added__year=current_year,
-#         date_added__month = current_month,
-#         date_added__day = current_day
-#     ).all()
-#     total_sales = sum(today_sales.values_list('grand_total',flat=True))
-#     context = {
-#         'page_title':'Home',
-#         'categories' : categories,
-#         'products' : products,
-#         'transaction' : transaction,
-#         'total_sales' : total_sales,
-#     }
-#     return render(request, 'posApp/home.html',context)
 def home(request):
-    categories_count = Category.objects.count()
-    products_count = Products.objects.count()
-    today = datetime.now().date()
-    today_transactions = Sales.objects.filter(date_added__date=today).count()
-    today_sales = Sales.objects.filter(date_added__date=today).aggregate(total_sales=Sum('grand_total'))['total_sales'] or 0
+    from datetime import date
+    today = date.today()
+    
+    # Fetch low quantity products
+    low_quantity_products = Products.objects.filter(quantity__lte=models.F('low_quantity_threshold'))
 
-    low_quantity_products = Products.objects.filter(quantity__lte=models.F('low_quantity_threshold'), status=1)
+    # Fetch most sold products
+    most_sold_products = SalesItems.objects.values('product_id__name').annotate(total_sold=Sum('qty')).order_by('-total_sold')[:5]
 
     context = {
-        'categories': categories_count,
-        'products': products_count,
-        'transaction': today_transactions,
-        'total_sales': today_sales,
+        'categories': Products.objects.count(),
+        'products': Products.objects.count(),
+        'transaction': Sales.objects.filter(date_added__date=today).count(),
+        'total_sales': Sales.objects.filter(date_added__date=today).aggregate(total=Sum('grand_total'))['total'],
         'low_quantity_products': low_quantity_products,
+        'most_sold_products': most_sold_products,
     }
     return render(request, 'posApp/home.html', context)
+# def home(request):
+#     categories_count = Category.objects.count()
+#     products_count = Products.objects.count()
+#     today = datetime.now().date()
+#     today_transactions = Sales.objects.filter(date_added__date=today).count()
+#     today_sales = Sales.objects.filter(date_added__date=today).aggregate(total_sales=Sum('grand_total'))['total_sales'] or 0
+
+#     low_quantity_products = Products.objects.filter(quantity__lte=models.F('low_quantity_threshold'), status=1)
+
+#     context = {
+#         'categories': categories_count,
+#         'products': products_count,
+#         'transaction': today_transactions,
+#         'total_sales': today_sales,
+#         'low_quantity_products': low_quantity_products,
+#     }
+#     return render(request, 'posApp/home.html', context)
 def about(request):
     context = {
         'page_title':'About',
@@ -143,7 +135,6 @@ def delete_category(request):
     return HttpResponse(json.dumps(resp), content_type="application/json")
 
 # Products
-@login_required
 def products(request):
     product_list = Products.objects.all()
     context = {
@@ -176,30 +167,95 @@ def test(request):
     return render(request, 'posApp/test.html',context)
 # @login_required
 # def save_product(request):
-#     data =  request.POST
-#     resp = {'status':'failed'}
-#     id= ''
+#     data = request.POST
+#     resp = {'status': 'failed'}
+#     id = ''
 #     if 'id' in data:
 #         id = data['id']
 #     if id.isnumeric() and int(id) > 0:
 #         check = Products.objects.exclude(id=id).filter(code=data['code']).all()
 #     else:
 #         check = Products.objects.filter(code=data['code']).all()
-#     if len(check) > 0 :
+#     if len(check) > 0:
 #         resp['msg'] = "Product Code Already Exists in the database"
 #     else:
-#         category = Category.objects.filter(id = data['category_id']).first()
+#         category = Category.objects.filter(id=data['category_id']).first()
 #         try:
-#             if (data['id']).isnumeric() and int(data['id']) > 0 :
-#                 save_product = Products.objects.filter(id = data['id']).update(code=data['code'], category_id=category, name=data['name'], description = data['description'], price = float(data['price']),status = data['status'])
+#             if id.isnumeric() and int(id) > 0:
+#                 save_product = Products.objects.filter(id=id).update(
+#                     code=data['code'],
+#                     category_id=category,
+#                     name=data['name'],
+#                     description=data['description'],
+#                     price=float(data['price']),
+#                     status=data['status'],
+#                     quantity=int(data['quantity']),
+#                     low_quantity_threshold=int(data['low_quantity_threshold'])  # Update threshold
+#                 )
 #             else:
-#                 save_product = Products(code=data['code'], category_id=category, name=data['name'], description = data['description'], price = float(data['price']),status = data['status'])
+#                 save_product = Products(
+#                     code=data['code'],
+#                     category_id=category,
+#                     name=data['name'],
+#                     description=data['description'],
+#                     price=float(data['price']),
+#                     status=data['status'],
+#                     quantity=int(data['quantity']),
+#                     low_quantity_threshold=int(data['low_quantity_threshold'])  # Set threshold
+#                 )
 #                 save_product.save()
 #             resp['status'] = 'success'
 #             messages.success(request, 'Product Successfully saved.')
 #         except:
 #             resp['status'] = 'failed'
 #     return HttpResponse(json.dumps(resp), content_type="application/json")
+
+@login_required
+def save_product(request):
+    data = request.POST
+    resp = {'status': 'failed'}
+    id = data.get('id', '')
+    code = data.get('code', '')
+
+    if id.isnumeric() and int(id) > 0:
+        check = Products.objects.exclude(id=id).filter(code=code).exists()
+    else:
+        check = Products.objects.filter(code=code).exists()
+
+    if check:
+        resp['msg'] = "Product Code Already Exists in the database"
+    else:
+        try:
+            category = Category.objects.get(id=data['category_id'])
+            if id.isnumeric() and int(id) > 0:
+                product = Products.objects.get(id=id)
+                product.code = code
+                product.category = category
+                product.name = data['name']
+                product.description = data['description']
+                product.price = float(data['price'])
+                product.status = data['status']
+                product.quantity = int(data['quantity'])
+                product.low_quantity_threshold = int(data['low_quantity_threshold'])
+                product.save()
+            else:
+                Products.objects.create(
+                    code=code,
+                    category=category,
+                    name=data['name'],
+                    description=data['description'],
+                    price=float(data['price']),
+                    status=data['status'],
+                    quantity=int(data['quantity']),
+                    low_quantity_threshold=int(data['low_quantity_threshold'])
+                )
+            resp['status'] = 'success'
+            messages.success(request, 'Product Successfully saved.')
+        except Category.DoesNotExist:
+            resp['msg'] = "Category does not exist"
+        except Exception as e:
+            resp['msg'] = f"An error occurred: {str(e)}"
+    return HttpResponse(json.dumps(resp), content_type="application/json")
 
 # @login_required
 # def save_product(request):
@@ -243,50 +299,6 @@ def test(request):
 #         except:
 #             resp['status'] = 'failed'
 #     return HttpResponse(json.dumps(resp), content_type="application/json")
-@login_required
-def save_product(request):
-    data = request.POST
-    resp = {'status': 'failed'}
-    id = ''
-    if 'id' in data:
-        id = data['id']
-    if id.isnumeric() and int(id) > 0:
-        check = Products.objects.exclude(id=id).filter(code=data['code']).all()
-    else:
-        check = Products.objects.filter(code=data['code']).all()
-    if len(check) > 0:
-        resp['msg'] = "Product Code Already Exists in the database"
-    else:
-        category = Category.objects.filter(id=data['category_id']).first()
-        try:
-            if id.isnumeric() and int(id) > 0:
-                save_product = Products.objects.filter(id=id).update(
-                    code=data['code'],
-                    category_id=category,
-                    name=data['name'],
-                    description=data['description'],
-                    price=float(data['price']),
-                    status=data['status'],
-                    quantity=int(data['quantity']),
-                    low_quantity_threshold=int(data['low_quantity_threshold'])  # Update threshold
-                )
-            else:
-                save_product = Products(
-                    code=data['code'],
-                    category_id=category,
-                    name=data['name'],
-                    description=data['description'],
-                    price=float(data['price']),
-                    status=data['status'],
-                    quantity=int(data['quantity']),
-                    low_quantity_threshold=int(data['low_quantity_threshold'])  # Set threshold
-                )
-                save_product.save()
-            resp['status'] = 'success'
-            messages.success(request, 'Product Successfully saved.')
-        except:
-            resp['status'] = 'failed'
-    return HttpResponse(json.dumps(resp), content_type="application/json")
 
 
 @login_required
@@ -300,6 +312,20 @@ def delete_product(request):
     except:
         resp['status'] = 'failed'
     return HttpResponse(json.dumps(resp), content_type="application/json")
+@login_required
+def pos(request):
+    products = Products.objects.filter(status = 1)
+    product_json = []
+    for product in products:
+        product_json.append({'id':product.id, 'name':product.name, 'price':float(product.price)})
+    context = {
+        'page_title' : "Point of Sale",
+        'products' : products,
+        'product_json' : json.dumps(product_json)
+    }
+    # return HttpResponse('')
+    return render(request, 'posApp/pos.html',context)
+
 @login_required
 def pos(request):
     products = Products.objects.filter(status = 1)
@@ -382,7 +408,6 @@ def save_pos(request):
     except Exception as e:
         resp['msg'] = f"An error occurred: {str(e)}"
     return HttpResponse(json.dumps(resp), content_type="application/json")
-
 
 
 @login_required

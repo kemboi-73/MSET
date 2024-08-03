@@ -5,7 +5,7 @@
     .card-inner {
       margin-right: 25%;
       .card-title {
-        font-size: 16px;
+        font-size: 36px;
         font-weight: 500;
         margin-bottom: 9px;
       }
@@ -16,7 +16,7 @@
         transform: translateY(-50%);
         width: 57px;
         height: 57px;
-        border-radius: 2px;
+        border-radius: 12px;
         background-color: theme-color(success);
         @include display-flex;
         @include align-items(center);

@@ -1,17 +1,20 @@
 {% extends "posApp/base.html" %}
 {% block pageContent %}
 {% load humanize %}
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
 
 <div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-12">
     <div class="mdc-card">
         <div class="d-flex justify-content-between">
-            <h4 class="card-title mb-0">Home Page</h4>
+            <h4 class="card-title mb-0">Analytics Overview</h4>
         </div>
     </div>
 </div>
+
 <div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-12">
     <hr class="w-100">
 </div>
+
 <div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-3-desktop mdc-layout-grid__cell--span-3-tablet">
     <div class="mdc-card info-card info-card--success">
         <div class="card-inner">
@@ -24,6 +27,7 @@
         </div>
     </div>
 </div>
+
 <div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-3-desktop mdc-layout-grid__cell--span-3-tablet">
     <div class="mdc-card info-card info-card--primary">
         <div class="card-inner">
@@ -36,6 +40,7 @@
         </div>
     </div>
 </div>
+
 <div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-3-desktop mdc-layout-grid__cell--span-3-tablet">
     <div class="mdc-card info-card info-card--info">
         <div class="card-inner">
@@ -48,6 +53,7 @@
         </div>
     </div>
 </div>
+
 <div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-3-desktop mdc-layout-grid__cell--span-3-tablet">
     <div class="mdc-card info-card info-card--warning">
         <div class="card-inner">
@@ -61,23 +67,14 @@
     </div>
 </div>
 
-<!-- Button to View Low Quantity Products -->
 <div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-12">
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#lowQuantityModal">
+    <button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#lowQuantityCollapse" aria-expanded="false" aria-controls="lowQuantityCollapse">
         View Low Quantity Products
     </button>
-</div>
-
-<!-- Modal for Low Quantity Products -->
-<div class="modal fade" id="lowQuantityModal" tabindex="-1" aria-labelledby="lowQuantityModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="lowQuantityModalLabel">Low Quantity Products</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <table class="table table-striped">
+    <div class="collapse" id="lowQuantityCollapse">
+        <div class="card card-body mt-3">
+            <div class="table-responsive">
+                <table class="table table-striped table-sm">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -104,13 +101,86 @@
                     </tbody>
                 </table>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
         </div>
     </div>
 </div>
-{% endblock pageContent %}
+
+<!-- Most Sold Products Graph -->
+<div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-12">
+    <div class="mdc-card">
+        <div class="d-flex justify-content-between">
+            <h4 class="card-title mb-0">Most Sold Products</h4>
+        </div>
+        <div class="chart-container">
+            <canvas id="mostSoldProductsChart"></canvas>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
 {% block ScriptBlock %}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-{% endblock ScriptBlock %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('mostSoldProductsChart').getContext('2d');
+    const mostSoldProductsChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: [{% for product in most_sold_products %}'{{ product.product_id__name }}',{% endfor %}],
+            datasets: [{
+                data: [{% for product in most_sold_products %}{{ product.total_sold }},{% endfor %}],
+                backgroundColor: [
+                    'rgba(25, 99, 132, 0.8)', // Darker shades
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 206, 86, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(153, 102, 255, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(25, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(tooltipItem) {
+                            return tooltipItem.label + ': ' + tooltipItem.raw;
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .modal-dialog {
+        max-width: 90vw; /* Make modal width responsive */
+    }
+    .chart-container {
+        position: relative;
+        height: 30vw; /* Responsive height */
+        max-height: 400px; /* Max height to prevent it from being too large */
+        width: 30vw; /* Responsive width */
+        max-width: 400px; /* Max width to prevent it from being too large */
+        margin: auto;
+    }
+    .table-sm th, .table-sm td {
+        padding: 0.3rem;
+    }
+</style>
+{% endblock %}
