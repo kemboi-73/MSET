@@ -39,4 +39,8 @@ urlpatterns = [
     # urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
     # path('filter-pie-chart/', views.filter_pie_chart, name='filter_pie_chart'),
+
+    # path('filter_most_sold_products/', views.filter_most_sold_products, name='filter_most_sold_products'),
+    path('sales/', views.salesList, name='sales-list'),
+    path('sales/export/<str:file_format>/', views.export_sales, name='export-sales'),
 ]

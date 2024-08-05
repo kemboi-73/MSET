@@ -5,6 +5,21 @@
     <div class="mdc-card py-2">
         <div class="d-flex justify-content-between align-items-center">
             <h4 class="card-title mb-0">Sales List</h4>
+            <form method="get" id="filter-form" class="d-flex align-items-center">
+                <input type="date" name="start_date" value="{{ request.GET.start_date }}" required class="form-control mx-1">
+                <input type="date" name="end_date" value="{{ request.GET.end_date }}" required class="form-control mx-1">
+                <button type="submit" class="mdc-button mdc-button--raised mx-1">Filter</button>
+                <a href="{% url 'sales-list' %}" class="mdc-button mdc-button--raised mx-1">Clear</a>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-12">
+    <div class="mdc-card py-2">
+        <div class="d-flex justify-content-between align-items-center">
+            <a href="{% url 'export-sales' 'excel' %}?start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}" class="mdc-button mdc-button--raised mx-1">Export to Excel</a>
+            <a href="{% url 'export-sales' 'csv' %}?start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}" class="mdc-button mdc-button--raised mx-1">Export to CSV</a>
+            <a href="{% url 'export-sales' 'pdf' %}?start_date={{ request.GET.start_date }}&end_date={{ request.GET.end_date }}" class="mdc-button mdc-button--raised mx-1">Export to PDF</a>
         </div>
     </div>
 </div>
@@ -48,12 +63,21 @@
                                 <i class="material-icons mdc-button__icon">receipt</i>
                             </button>
                             <button class="mdc-button mdc-button--raised p-1 icon-button filled-button--danger mdc-ripple-upgraded delete-data" type="button" data-id="{{ sale.id }}" data-code="{{ sale.code }}" title="Delete">
-                                <i class="material-icons mdc-button__icon">deleteoutline</i>
+                                <i class="material-icons mdc-button__icon">delete_outline</i>
                             </button>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
+                <tfoot>
+                    <tr>
+                        <th class="text-end py-1" colspan="3">Totals:</th>
+                        <th class="text-end py-1">{{ total_grand_total|intcomma }}</th>
+                        <th class="text-end py-1">{{ total_tax_amount|intcomma }}</th>
+                        <th class="text-center py-1">{{ total_item_count|intcomma }}</th>
+                        <th class="text-center py-1" colspan="2"></th>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     </div>

@@ -1,7 +1,91 @@
 {% load humanize %}
 <style>
     #uni_modal .modal-footer {
-        display: none
+        display: none;
+    }
+    .container-fluid {
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        color: #333;
+    }
+    .fw-bold {
+        font-weight: bold;
+    }
+    .text-center {
+        text-align: center;
+    }
+    .text-end {
+        text-align: end;
+    }
+    .text-start {
+        text-align: start;
+    }
+    .lh-1 {
+        line-height: 1.5;
+    }
+    .border-bottom {
+        border-bottom: 1px solid #ccc;
+    }
+    .clear-fix {
+        clear: both;
+    }
+    .py-3 {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+    .d-flex {
+        display: flex;
+    }
+    .w-100 {
+        width: 100%;
+    }
+    .align-items-end {
+        align-items: flex-end;
+    }
+    .col-2, .col-4, .col-6 {
+        flex: 0 0 auto;
+    }
+    .col-2 {
+        width: 16.6667%;
+    }
+    .col-4 {
+        width: 33.3333%;
+    }
+    .col-6 {
+        width: 50%;
+    }
+    .btn {
+        display: inline-block;
+        padding: 0.375rem 0.75rem;
+        margin-bottom: 0;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.5;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: middle;
+        cursor: pointer;
+        border: 1px solid transparent;
+        border-radius: 0.25rem;
+    }
+    .btn-light {
+        color: #333;
+        background-color: #f8f9fa;
+        border-color: #f8f9fa;
+    }
+    .btn-secondary {
+        color: #fff;
+        background-color: #6c757d;
+        border-color: #6c757d;
+    }
+    .bg-gradient {
+        background: linear-gradient(to right, #6a11cb 0%, #2575fc 100%);
+    }
+    .rounded-0 {
+        border-radius: 0;
+    }
+    .me-1 {
+        margin-right: 0.25rem;
     }
 </style>
 <div class="container-fluid">
@@ -15,7 +99,8 @@
             <div>
                 <span>Date:</span> {{ transaction.date_added|date:"M d Y" }} <br>
                 <span>Transaction Code:</span> {{ transaction.code }} <br>
-                <span>Payment Mode:</span> {{ transaction.payment_mode }}
+                <span>Payment Mode:</span> {{ transaction.payment_mode }} <br>
+                <span>Served By:</span> {{ user.username }}
             </div>
         </div>
         <div class="clear-fix py-3"></div>
@@ -54,6 +139,12 @@
                 <div class="col-6 text-start fw-bold">Change</div>
                 <div class="col-6 text-end fw-bold">{{ transaction.amount_change|intcomma }}</div>
             </div>
+        </div>
+        <div class="clear-fix py-3"></div>
+        <hr>
+        <div class="lh-1 text-center fw-bold">
+            Thank you for your purchase! <br>
+            Welcome back
         </div>
     </div>
     <hr>

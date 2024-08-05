@@ -11,6 +11,14 @@ from django.shortcuts import redirect
 import json, sys
 from datetime import date, datetime
 from django.db import models
+
+# for pie filter
+# from django.shortcuts import render
+# from django.http import JsonResponse
+# from .models import SalesItems
+# from django.db.models import Sum
+# from django.utils.dateparse import parse_date
+
 # Login
 def login_user(request):
     logout(request)
@@ -37,17 +45,83 @@ def logoutuser(request):
     logout(request)
     return redirect('/')
 
-# Create your views here.
-def home(request):
-    from datetime import date
-    today = date.today()
+
+
+# def home(request):
+#     from datetime import date
+#     today = date.today()
     
+#     # Fetch low quantity products
+#     low_quantity_products = Products.objects.filter(quantity__lte=models.F('low_quantity_threshold'))
+
+#     # Fetch most sold products
+#     most_sold_products = SalesItems.objects.values('product_id__name').annotate(total_sold=Sum('qty')).order_by('-total_sold')[:5]
+
+#     context = {
+#         'categories': Products.objects.count(),
+#         'products': Products.objects.count(),
+#         'transaction': Sales.objects.filter(date_added__date=today).count(),
+#         'total_sales': Sales.objects.filter(date_added__date=today).aggregate(total=Sum('grand_total'))['total'],
+#         'low_quantity_products': low_quantity_products,
+#         'most_sold_products': most_sold_products,
+#     }
+#     return render(request, 'posApp/home.html', context)
+from django.shortcuts import render
+from django.utils import timezone
+from datetime import timedelta
+from .models import Sales  # Make sure to import your Sale model
+
+from django.shortcuts import render
+from django.db.models import Sum
+from django.utils import timezone
+from datetime import timedelta
+from dateutil.relativedelta import relativedelta
+from .models import Products, Sales, SalesItems
+
+def home(request):
+    today = timezone.now().date()
+    seven_days_ago = today - timedelta(days=7)
+    six_months_ago = today - relativedelta(months=6)
+    one_month_ago = today - relativedelta(months=1)
+
     # Fetch low quantity products
     low_quantity_products = Products.objects.filter(quantity__lte=models.F('low_quantity_threshold'))
 
     # Fetch most sold products
     most_sold_products = SalesItems.objects.values('product_id__name').annotate(total_sold=Sum('qty')).order_by('-total_sold')[:5]
-
+    
+    # Fetch sales data for the last 7 days
+    sales_last_7_days = Sales.objects.filter(date_added__date__range=[seven_days_ago, today])
+    
+    # Prepare data for the 7 days chart
+    sales_data_7_days = {}
+    for sale in sales_last_7_days:
+        date = sale.date_added.date()
+        sales_data_7_days[date] = sales_data_7_days.get(date, 0) + sale.grand_total
+    
+    # Fill missing days with 0 sales
+    all_dates_7_days = [seven_days_ago + timedelta(days=i) for i in range(7)]
+    sales_for_chart_7_days = [{'date': date.strftime('%Y-%m-%d'), 'total_sales': sales_data_7_days.get(date, 0)} for date in all_dates_7_days]
+    
+    # Fetch sales data for the last 6 months
+    sales_last_6_months = Sales.objects.filter(date_added__date__range=[six_months_ago, today])
+    
+    # Prepare data for the 6 months chart
+    sales_data_6_months = {}
+    for sale in sales_last_6_months:
+        month = sale.date_added.date().strftime('%Y-%m')
+        sales_data_6_months[month] = sales_data_6_months.get(month, 0) + sale.grand_total
+    
+    # Fill missing months with 0 sales
+    all_months = [(six_months_ago + relativedelta(months=i)).strftime('%Y-%m') for i in range(7)]
+    sales_for_chart_6_months = [{'month': month, 'total_sales': sales_data_6_months.get(month, 0)} for month in all_months]
+    
+    # Fetch most sold products for the past month
+    sales_last_1_month = SalesItems.objects.filter(sale_id__date_added__date__range=[one_month_ago, today])
+    
+    # Prepare data for the most sold products in the past month chart
+    most_sold_products_month = SalesItems.objects.filter(sale_id__date_added__date__range=[one_month_ago, today]).values('product_id__name').annotate(total_sold=Sum('qty')).order_by('-total_sold')
+    
     context = {
         'categories': Products.objects.count(),
         'products': Products.objects.count(),
@@ -55,8 +129,53 @@ def home(request):
         'total_sales': Sales.objects.filter(date_added__date=today).aggregate(total=Sum('grand_total'))['total'],
         'low_quantity_products': low_quantity_products,
         'most_sold_products': most_sold_products,
+        'sales_last_7_days': sales_for_chart_7_days,
+        'sales_last_6_months': sales_for_chart_6_months,
+        'most_sold_products_month': most_sold_products_month,
     }
     return render(request, 'posApp/home.html', context)
+
+
+
+# from datetime import date, timedelta
+# from django.db.models import Sum
+# from .models import Products, Sales, SalesItems
+
+# from datetime import date, timedelta
+# from django.db.models import Sum, F
+# from django.shortcuts import render
+# from .models import Products, Sales, SalesItems
+
+# def home(request):
+#     today = date.today()
+#     thirty_days_ago = today - timedelta(days=30)
+
+#     # Fetch low quantity products
+#     low_quantity_products = Products.objects.filter(quantity__lte=F('low_quantity_threshold'))
+
+#     # Fetch most sold products
+#     most_sold_products = SalesItems.objects.values('product_id__name').annotate(total_sold=Sum('qty')).order_by('-total_sold')[:5]
+
+#     # Fetch sales data for the last 30 days
+#     sales_last_30_days = Sales.objects.filter(date_added__date__gte=thirty_days_ago, date_added__date__lte=today)
+#     daily_sales = sales_last_30_days.extra({'date_added': "date(date_added)"}).values('date_added').annotate(total=Sum('grand_total')).order_by('date_added')
+
+#     # Format daily_sales for JSON output
+#     daily_sales_formatted = [{'date_added': sale['date_added'].strftime('%Y-%m-%d') if isinstance(sale['date_added'], datetime) else sale['date_added'], 'total': sale['total']} for sale in daily_sales]
+
+#     context = {
+#         'categories': Products.objects.count(),
+#         'products': Products.objects.count(),
+#         'transaction': Sales.objects.filter(date_added__date=today).count(),
+#         'total_sales': Sales.objects.filter(date_added__date=today).aggregate(total=Sum('grand_total'))['total'],
+#         'low_quantity_products': low_quantity_products,
+#         'most_sold_products': most_sold_products,
+#         'daily_sales': daily_sales_formatted,  # Pass formatted data
+#     }
+#     return render(request, 'posApp/home.html', context)
+
+
+
 # def home(request):
 #     categories_count = Category.objects.count()
 #     products_count = Products.objects.count()
@@ -410,36 +529,124 @@ def save_pos(request):
     return HttpResponse(json.dumps(resp), content_type="application/json")
 
 
+# @login_required
+# # 
+
+
+# def salesList(request):
+#     # Get all sales
+#     sales = Sales.objects.all()
+
+#     sale_data = []
+#     for sale in sales:
+#         data = {}
+#         # Collect basic sale information
+#         for field in sale._meta.get_fields(include_parents=False):
+#             if field.related_model is None:
+#                 data[field.name] = getattr(sale, field.name)
+        
+#         # Collect related items for each sale
+#         items = SalesItems.objects.filter(sale_id=sale).all()
+#         data['items'] = items
+#         data['item_count'] = items.count()  # Count of items in the sale
+
+#         # Format tax_amount if it exists
+#         if 'tax_amount' in data:
+#             data['tax_amount'] = format(float(data['tax_amount']), '.2f')
+        
+#         sale_data.append(data)
+
+#     context = {
+#         'page_title': 'Sales Transactions',
+#         'sale_data': sale_data,
+#     }
+    
+#     return render(request, 'posApp/sales.html', context)
+
+from datetime import datetime
+from django.http import HttpResponse
+from django.shortcuts import render
+from .models import Sales, SalesItems
+import csv
+# import xlwt
+from django.http import JsonResponse
+
 @login_required
-# 
+# def salesList(request):
+#     # Get the start and end dates from the request
+#     start_date = request.GET.get('start_date')
+#     end_date = request.GET.get('end_date')
+    
+#     # Filter sales based on date range
+#     sales = Sales.objects.all()
+#     if start_date:
+#         sales = sales.filter(date_added__date__gte=start_date)
+#     if end_date:
+#         sales = sales.filter(date_added__date__lte=end_date)
 
+#     sale_data = []
+#     for sale in sales:
+#         data = {}
+#         for field in sale._meta.get_fields(include_parents=False):
+#             if field.related_model is None:
+#                 data[field.name] = getattr(sale, field.name)
+        
+#         items = SalesItems.objects.filter(sale_id=sale).all()
+#         data['items'] = items
+#         data['item_count'] = items.count()
+#         if 'tax_amount' in data:
+#             data['tax_amount'] = format(float(data['tax_amount']), '.2f')
+#         sale_data.append(data)
 
+#     context = {
+#         'page_title': 'Sales Transactions',
+#         'sale_data': sale_data,
+#     }
+    
+#     return render(request, 'posApp/sales.html', context)
 def salesList(request):
-    # Get all sales
+    # Get the start and end dates from the request
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    
+    # Filter sales based on date range
     sales = Sales.objects.all()
+    if start_date:
+        sales = sales.filter(date_added__date__gte=start_date)
+    if end_date:
+        sales = sales.filter(date_added__date__lte=end_date)
 
     sale_data = []
+    total_grand_total = 0
+    total_tax_amount = 0
+    total_item_count = 0
+
     for sale in sales:
         data = {}
-        # Collect basic sale information
         for field in sale._meta.get_fields(include_parents=False):
             if field.related_model is None:
                 data[field.name] = getattr(sale, field.name)
         
-        # Collect related items for each sale
         items = SalesItems.objects.filter(sale_id=sale).all()
         data['items'] = items
-        data['item_count'] = items.count()  # Count of items in the sale
-
-        # Format tax_amount if it exists
+        data['item_count'] = items.count()
+        
+        if 'grand_total' in data:
+            total_grand_total += float(data['grand_total'])
+        
         if 'tax_amount' in data:
+            total_tax_amount += float(data['tax_amount'])
             data['tax_amount'] = format(float(data['tax_amount']), '.2f')
         
+        total_item_count += data['item_count']
         sale_data.append(data)
 
     context = {
         'page_title': 'Sales Transactions',
         'sale_data': sale_data,
+        'total_grand_total': total_grand_total,
+        'total_tax_amount': total_tax_amount,
+        'total_item_count': total_item_count,
     }
     
     return render(request, 'posApp/sales.html', context)
@@ -462,6 +669,123 @@ def receipt(request):
     return render(request, 'posApp/receipt.html',context)
     # return HttpResponse('')
 
+import io
+from django.http import HttpResponse
+import csv
+# import xlwt
+# # from reportlab.lib.pagesizes import letter
+# from reportlab.pdfgen import canvas
+from .models import Sales, SalesItems
+
+@login_required
+def export_sales(request, file_format):
+    # Get the start and end dates from the request
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    # Filter sales based on date range
+    sales = Sales.objects.all()
+    if start_date:
+        sales = sales.filter(date_added__date__gte=start_date)
+    if end_date:
+        sales = sales.filter(date_added__date__lte=end_date)
+
+    if file_format == 'csv':
+        return export_sales_csv(sales)
+    elif file_format == 'excel':
+        return export_sales_excel(sales)
+    elif file_format == 'pdf':
+        return export_sales_pdf(sales)
+    else:
+        return HttpResponse(status=400)
+
+def export_sales_csv(sales):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="sales.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(['ID', 'DateTime', 'Trans. Code', 'Total', 'Tax Inclusive', 'Items', 'Payment Mode'])
+
+    for sale in sales:
+        items = SalesItems.objects.filter(sale_id=sale).count()
+        writer.writerow([
+            sale.id, 
+            sale.date_added, 
+            sale.code, 
+            sale.grand_total, 
+            sale.tax_amount, 
+            items,
+            sale.payment_mode
+        ])
+
+    return response
+
+def export_sales_excel(sales):
+    response = HttpResponse(content_type='application/ms-excel')
+    response['Content-Disposition'] = 'attachment; filename="sales.xls"'
+
+    wb = xlwt.Workbook(encoding='utf-8')
+    ws = wb.add_sheet('Sales')
+
+    row_num = 0
+    columns = ['ID', 'DateTime', 'Trans. Code', 'Total', 'Tax Inclusive', 'Items', 'Payment Mode']
+
+    for col_num in range(len(columns)):
+        ws.write(row_num, col_num, columns[col_num])
+
+    for sale in sales:
+        row_num += 1
+        items = SalesItems.objects.filter(sale_id=sale).count()
+        row = [
+            sale.id, 
+            sale.date_added, 
+            sale.code, 
+            sale.grand_total, 
+            sale.tax_amount, 
+            items,
+            sale.payment_mode
+        ]
+        for col_num in range(len(row)):
+            ws.write(row_num, col_num, row[col_num])
+
+    wb.save(response)
+    return response
+
+def export_sales_pdf(sales):
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="sales.pdf"'
+
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+
+    y = height - 40
+    p.drawString(30, y, 'ID')
+    p.drawString(80, y, 'DateTime')
+    p.drawString(200, y, 'Trans. Code')
+    p.drawString(300, y, 'Total')
+    p.drawString(380, y, 'Tax Inclusive')
+    p.drawString(480, y, 'Items')
+    p.drawString(550, y, 'Payment Mode')
+
+    for sale in sales:
+        y -= 20
+        items = SalesItems.objects.filter(sale_id=sale).count()
+        p.drawString(30, y, str(sale.id))
+        p.drawString(80, y, sale.date_added.strftime('%Y-%m-%d %H:%M'))
+        p.drawString(200, y, sale.code)
+        p.drawString(300, y, str(sale.grand_total))
+        p.drawString(380, y, str(sale.tax_amount))
+        p.drawString(480, y, str(items))
+        p.drawString(550, y, sale.payment_mode)
+
+    p.showPage()
+    p.save()
+
+    pdf = buffer.getvalue()
+    buffer.close()
+    response.write(pdf)
+    return response
 
 
 @login_required
@@ -485,3 +809,23 @@ def low_quantity_products(request):
         'low_quantity_products': low_quantity_products,
     }
     return render(request, 'posApp/low_quantity_products.html', context)
+
+# def filter_most_sold_products(request):
+#     start_date = request.GET.get('start_date')
+#     end_date = request.GET.get('end_date')
+    
+#     sales_items = SalesItems.objects.select_related('product_id', 'sale_id')
+
+#     if start_date:
+#         sales_items = sales_items.filter(sale_id__date_added__gte=parse_date(start_date))
+#     if end_date:
+#         sales_items = sales_items.filter(sale_id__date_added__lte=parse_date(end_date))
+
+#     sales_data = sales_items.values('product_id__name').annotate(total_sold=Sum('qty')).order_by('-total_sold')[:5]
+    
+#     data = {
+#         'labels': [sale['product_id__name'] for sale in sales_data],
+#         'values': [sale['total_sold'] for sale in sales_data]
+#     }
+    
+#     return JsonResponse(data)
