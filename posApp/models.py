@@ -21,6 +21,8 @@ class Products(models.Model):
     status = models.IntegerField(default=1)
     quantity = models.IntegerField(default=0)
     low_quantity_threshold = models.IntegerField(default=0)
+    image = models.ImageField(upload_to='products/', blank=True, null=True)  # New field
+
 
     def __str__(self):
         return self.code + " - " + self.name

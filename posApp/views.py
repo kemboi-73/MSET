@@ -261,23 +261,33 @@ def products(request):
         'products':product_list,
     }
     return render(request, 'posApp/products.html',context)
-@login_required
-def manage_products(request):
-    product = {}
-    categories = Category.objects.filter(status = 1).all()
-    if request.method == 'GET':
-        data =  request.GET
-        id = ''
-        if 'id' in data:
-            id= data['id']
-        if id.isnumeric() and int(id) > 0:
-            product = Products.objects.filter(id=id).first()
+# @login_required
+# def manage_products(request):
+#     product = {}
+#     categories = Category.objects.filter(status = 1).all()
+#     if request.method == 'GET':
+#         data =  request.GET
+#         id = ''
+#         if 'id' in data:
+#             id= data['id']
+#         if id.isnumeric() and int(id) > 0:
+#             product = Products.objects.filter(id=id).first()
     
+#     context = {
+#         'product' : product,
+#         'categories' : categories
+#     }
+#     return render(request, 'posApp/manage_product.html',context)
+
+def manage_product(request):
+    product_id = request.GET.get('id')
+    product = get_object_or_404(Products, id=product_id) if product_id else None
+    categories = Category.objects.all()
     context = {
-        'product' : product,
-        'categories' : categories
+        'product': product,
+        'categories': categories
     }
-    return render(request, 'posApp/manage_product.html',context)
+    return render(request, 'posApp/manage_product.html', context)
 def test(request):
     categories = Category.objects.all()
     context = {
@@ -329,53 +339,85 @@ def test(request):
 #             resp['status'] = 'failed'
 #     return HttpResponse(json.dumps(resp), content_type="application/json")
 
-@login_required
+# @login_required
+# def save_product(request):
+#     data = request.POST
+#     resp = {'status': 'failed'}
+#     id = data.get('id', '')
+#     code = data.get('code', '')
+
+#     if id.isnumeric() and int(id) > 0:
+#         check = Products.objects.exclude(id=id).filter(code=code).exists()
+#     else:
+#         check = Products.objects.filter(code=code).exists()
+
+#     if check:
+#         resp['msg'] = "Product Code Already Exists in the database"
+#     else:
+#         try:
+#             category = Category.objects.get(id=data['category_id'])
+#             if id.isnumeric() and int(id) > 0:
+#                 product = Products.objects.get(id=id)
+#                 product.code = code
+#                 product.category = category
+#                 product.name = data['name']
+#                 product.description = data['description']
+#                 product.price = float(data['price'])
+#                 product.status = data['status']
+#                 product.quantity = int(data['quantity'])
+#                 product.low_quantity_threshold = int(data['low_quantity_threshold'])
+#                 product.save()
+#             else:
+#                 Products.objects.create(
+#                     code=code,
+#                     category=category,
+#                     name=data['name'],
+#                     description=data['description'],
+#                     price=float(data['price']),
+#                     status=data['status'],
+#                     quantity=int(data['quantity']),
+#                     low_quantity_threshold=int(data['low_quantity_threshold'])
+#                 )
+#             resp['status'] = 'success'
+#             messages.success(request, 'Product Successfully saved.')
+#         except Category.DoesNotExist:
+#             resp['msg'] = "Category does not exist"
+#         except Exception as e:
+#             resp['msg'] = f"An error occurred: {str(e)}"
+#     return HttpResponse(json.dumps(resp), content_type="application/json")
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
+from .models import Products, Category
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
 def save_product(request):
-    data = request.POST
-    resp = {'status': 'failed'}
-    id = data.get('id', '')
-    code = data.get('code', '')
+    if request.method == 'POST':
+        product_id = request.POST.get('id')
+        if product_id:
+            product = get_object_or_404(Products, id=product_id)
+        else:
+            product = Products()
 
-    if id.isnumeric() and int(id) > 0:
-        check = Products.objects.exclude(id=id).filter(code=code).exists()
-    else:
-        check = Products.objects.filter(code=code).exists()
+        product.code = request.POST.get('code')
+        product.low_quantity_threshold = request.POST.get('low_quantity_threshold')
+        product.category_id = request.POST.get('category_id')
+        product.name = request.POST.get('name')
+        product.description = request.POST.get('description')
+        product.price = request.POST.get('price')
+        product.quantity = request.POST.get('quantity')
+        product.status = request.POST.get('status')
 
-    if check:
-        resp['msg'] = "Product Code Already Exists in the database"
-    else:
+        if 'image' in request.FILES:
+            product.image = request.FILES['image']
+
         try:
-            category = Category.objects.get(id=data['category_id'])
-            if id.isnumeric() and int(id) > 0:
-                product = Products.objects.get(id=id)
-                product.code = code
-                product.category = category
-                product.name = data['name']
-                product.description = data['description']
-                product.price = float(data['price'])
-                product.status = data['status']
-                product.quantity = int(data['quantity'])
-                product.low_quantity_threshold = int(data['low_quantity_threshold'])
-                product.save()
-            else:
-                Products.objects.create(
-                    code=code,
-                    category=category,
-                    name=data['name'],
-                    description=data['description'],
-                    price=float(data['price']),
-                    status=data['status'],
-                    quantity=int(data['quantity']),
-                    low_quantity_threshold=int(data['low_quantity_threshold'])
-                )
-            resp['status'] = 'success'
-            messages.success(request, 'Product Successfully saved.')
-        except Category.DoesNotExist:
-            resp['msg'] = "Category does not exist"
+            product.save()
+            return JsonResponse({'status': 'success'})
         except Exception as e:
-            resp['msg'] = f"An error occurred: {str(e)}"
-    return HttpResponse(json.dumps(resp), content_type="application/json")
+            return JsonResponse({'status': 'failed', 'msg': str(e)})
 
+    return JsonResponse({'status': 'failed', 'msg': 'Invalid request'})
 # @login_required
 # def save_product(request):
 #     data = request.POST

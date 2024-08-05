@@ -4,6 +4,8 @@ from django.contrib.auth import views as auth_views
 from django.urls import path
 from django.views.generic.base import RedirectView
 from .views import home, low_quantity_products
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('redirect-admin', RedirectView.as_view(url="/admin"),name="redirect-admin"),
@@ -16,7 +18,7 @@ urlpatterns = [
     path('save_category', views.save_category, name="save-category-page"),
     path('delete_category', views.delete_category, name="delete-category"),
     path('products', views.products, name="product-page"),
-    path('manage_products', views.manage_products, name="manage_products-page"),
+    path('manage_products', views.manage_product, name="manage_products-page"),
     # path('test', views.test, name="test-page"),
     path('save_product', views.save_product, name="save-product-page"),
     path('delete_product', views.delete_product, name="delete-product"),
@@ -43,4 +45,4 @@ urlpatterns = [
     # path('filter_most_sold_products/', views.filter_most_sold_products, name='filter_most_sold_products'),
     path('sales/', views.salesList, name='sales-list'),
     path('sales/export/<str:file_format>/', views.export_sales, name='export-sales'),
-]
+    ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

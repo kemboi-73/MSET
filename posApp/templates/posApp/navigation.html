@@ -1,46 +1,159 @@
 {% load static %}
-<!-- partial:partials/_sidebar.html -->
-<aside class="mdc-drawer mdc-drawer--dismissible mdc-drawer--open bg-dark bg-gradient">
-    <div class="mdc-drawer__header border-bottom border-light">
-        <a href="{% url 'home-page' %}" class="brand-logo">
-            <h3 class="text-center text-light">MSET POS</h3>
-        </a>
-    </div>
-    <div class="mdc-drawer__content">
-        <div class="mdc-list-group">
-            <nav class="mdc-list mdc-drawer-menu">
-                <div class="mdc-list-item mdc-drawer-item">
-                    <a class="mdc-drawer-link" href="{% url 'home-page' %}">
-                        <i class="material-icons mdc-list-item__start-detail mdc-drawer-item-icon" aria-hidden="true">home</i> Analytis
-                    </a>
-                </div>
-                <div class="mdc-list-item mdc-drawer-item">
-                    <a class="mdc-drawer-link" href="{% url 'category-page' %}">
-                        <i class="material-icons mdc-list-item__start-detail mdc-drawer-item-icon" aria-hidden="true">list</i> Category List
-                    </a>
-                </div>
-                <div class="mdc-list-item mdc-drawer-item">
-                    <a class="mdc-drawer-link" href="{% url 'product-page' %}">
-                        <i class="material-icons mdc-list-item__start-detail mdc-drawer-item-icon" aria-hidden="true">label</i> Product List
-                    </a>
-                </div>
-                <div class="mdc-list-item mdc-drawer-item">
-                    <a class="mdc-drawer-link" href="{% url 'pos-page' %}">
-                        <i class="material-icons mdc-list-item__start-detail mdc-drawer-item-icon" aria-hidden="true">payment</i> POS
-                    </a>
-                </div>
-                <div class="mdc-list-item mdc-drawer-item">
-                    <a class="mdc-drawer-link" href="{% url 'sales-page' %}">
-                        <i class="material-icons mdc-list-item__start-detail mdc-drawer-item-icon" aria-hidden="true">receipt</i> Sales
-                    </a>
-                </div>
-                <div class="mdc-list-item mdc-drawer-item">
-                    <a class="mdc-drawer-link" href="{% url 'home-page' %}">
-                        <i class="material-icons mdc-list-item__start-detail mdc-drawer-item-icon" aria-hidden="true">home</i> Analytis
-                    </a>
-                </div>
-            </nav>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSET POS Sidebar</title>
+    <!-- Importing Google Fonts and Material Icons -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100;200;300;400;500;600;700&display=swap">
+    <style>
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 110px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(17px);
+            -webkit-backdrop-filter: blur(17px);
+            border-right: 1px solid rgba(255, 255, 255, 0.7);
+            transition: width 0.3s ease;
+            z-index: 1050; /* Ensure it's above other content */
+            overflow: hidden; /* Hide overflowing content */
+        }
+    
+        .sidebar:hover {
+            width: 260px;
+        }
+    
+        .sidebar .logo {
+            color: #000;
+            display: flex;
+            align-items: center;
+            padding: 25px 10px 15px;
+        }
+    
+        .logo img {
+            width: 43px;
+            border-radius: 50%;
+        }
+    
+        .logo h2 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-left: 15px;
+            display: none;
+        }
+    
+        .sidebar:hover .logo h2 {
+            display: block;
+        }
+    
+        .sidebar .links {
+            list-style: none;
+            margin-top: 20px;
+            overflow-y: auto;
+            height: calc(100% - 140px);
+        }
+    
+        .sidebar .links::-webkit-scrollbar {
+            display: none;
+        }
+    
+        .links li {
+            display: flex;
+            border-radius: 4px;
+            align-items: center;
+        }
+    
+        .links li:hover {
+            cursor: pointer;
+            background: #fff;
+        }
+    
+        .links h4 {
+            color: #222;
+            font-weight: 500;
+            display: none;
+            margin-bottom: 10px;
+        }
+    
+        .sidebar:hover .links h4 {
+            display: block;
+        }
+    
+        .links hr {
+            margin: 10px 8px;
+            border: 1px solid #4c4c4c;
+        }
+    
+        .sidebar:hover .links hr {
+            border-color: transparent;
+        }
+    
+        .links li span {
+            padding: 12px 10px;
+            font-family: 'Material Symbols Outlined', sans-serif;
+        }
+    
+        .links li a {
+            padding: 10px;
+            color: #000;
+            display: none;
+            font-weight: 500;
+            white-space: nowrap;
+            text-decoration: none;
+        }
+    
+        .sidebar:hover .links li a {
+            display: block;
+        }
+    
+        .links .logout-link {
+            margin-top: 20px;
+        }
+    </style>
+    
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="logo">
+            <img src="images/logo.jpg" alt="logo">
+            <h2>MSET POS</h2>
         </div>
-    </div>
-</aside>
-<!-- partial -->
+        <ul class="links">
+            <h4>Main Menu</h4>
+            <li>
+                <span class="material-symbols-outlined">home</span>
+                <a href="{% url 'home-page' %}">Analytis</a>
+            </li>
+            <li>
+                <span class="material-symbols-outlined">list</span>
+                <a href="{% url 'category-page' %}">Category List</a>
+            </li>
+            <li>
+                <span class="material-symbols-outlined">label</span>
+                <a href="{% url 'product-page' %}">Product List</a>
+            </li>
+            <li>
+                <span class="material-symbols-outlined">payment</span>
+                <a href="{% url 'pos-page' %}">POS</a>
+            </li>
+            <li>
+                <span class="material-symbols-outlined">receipt</span>
+                <a href="{% url 'sales-page' %}">Sales</a>
+            </li>
+            <hr>
+            <li class="logout-link">
+                <span class="material-symbols-outlined">logout</span>
+                <a href="#">Logout</a>
+            </li>
+        </ul>
+    </aside>
+</body>
+</html>
