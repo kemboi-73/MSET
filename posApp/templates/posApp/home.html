@@ -52,7 +52,10 @@
             </div>
         </div>
     </div>
+ 
+
 </div>
+
 
 <div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-3-desktop mdc-layout-grid__cell--span-3-tablet">
     <div class="mdc-card info-card info-card--warning">
@@ -66,6 +69,24 @@
         </div>
     </div>
 </div>
+<!-- Total Sales Last 30 Days -->
+<div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-3-desktop mdc-layout-grid__cell--span-3-tablet">
+    <div class="mdc-card info-card info-card--secondary">
+        <div class="card-inner">
+            <h5 class="card-title">Total Sales Last 30 Days</h5>
+            <h5 class="font-weight-light pb-2 mb-1 border-bottom">{{ total_sales_last_30_days|intcomma }}</h5>
+            <p class="tx-12 text-muted">Total Sales Made in the Past 30 Days</p>
+            <div class="card-icon-wrapper">
+                <i class="mdi mdi-calendar-month"></i>
+            </div>
+            <p class="tx-12 text-muted mt-2">
+                Change from Previous 30 Days: <span class="{{ change_indicator }}">{{ percentage_change }}</span>
+            </p>
+        </div>
+    </div>
+</div>
+
+
 
 <div class="mdc-layout-grid__cell stretch-card mdc-layout-grid__cell--span-12">
     <button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#lowQuantityCollapse" aria-expanded="false" aria-controls="lowQuantityCollapse">

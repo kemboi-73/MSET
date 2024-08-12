@@ -70,12 +70,10 @@ from django.shortcuts import render
 from django.utils import timezone
 from datetime import timedelta
 from .models import Sales  # Make sure to import your Sale model
-
-from django.shortcuts import render
-from django.db.models import Sum
 from django.utils import timezone
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
+from django.db.models import Sum
 from .models import Products, Sales, SalesItems
 
 def home(request):
@@ -89,7 +87,7 @@ def home(request):
 
     # Fetch most sold products
     most_sold_products = SalesItems.objects.values('product_id__name').annotate(total_sold=Sum('qty')).order_by('-total_sold')[:5]
-    
+
     # Fetch sales data for the last 7 days
     sales_last_7_days = Sales.objects.filter(date_added__date__range=[seven_days_ago, today])
     
@@ -102,7 +100,7 @@ def home(request):
     # Fill missing days with 0 sales
     all_dates_7_days = [seven_days_ago + timedelta(days=i) for i in range(7)]
     sales_for_chart_7_days = [{'date': date.strftime('%Y-%m-%d'), 'total_sales': sales_data_7_days.get(date, 0)} for date in all_dates_7_days]
-    
+
     # Fetch sales data for the last 6 months
     sales_last_6_months = Sales.objects.filter(date_added__date__range=[six_months_ago, today])
     
@@ -115,25 +113,49 @@ def home(request):
     # Fill missing months with 0 sales
     all_months = [(six_months_ago + relativedelta(months=i)).strftime('%Y-%m') for i in range(7)]
     sales_for_chart_6_months = [{'month': month, 'total_sales': sales_data_6_months.get(month, 0)} for month in all_months]
-    
+
     # Fetch most sold products for the past month
-    sales_last_1_month = SalesItems.objects.filter(sale_id__date_added__date__range=[one_month_ago, today])
-    
-    # Prepare data for the most sold products in the past month chart
     most_sold_products_month = SalesItems.objects.filter(sale_id__date_added__date__range=[one_month_ago, today]).values('product_id__name').annotate(total_sold=Sum('qty')).order_by('-total_sold')
-    
+
+    # Calculate total sales for the past 30 days
+    end_of_last_period = today - timedelta(days=30)
+    start_of_last_period = end_of_last_period - timedelta(days=30)
+
+    total_sales_last_30_days = Sales.objects.filter(date_added__date__range=[end_of_last_period, today]).aggregate(total=Sum('grand_total'))['total'] or 0
+    total_sales_previous_30_days = Sales.objects.filter(date_added__date__range=[start_of_last_period, end_of_last_period]).aggregate(total=Sum('grand_total'))['total'] or 0
+
+    # Calculate percentage change
+    if total_sales_previous_30_days > 0:
+        percentage_change = ((total_sales_last_30_days - total_sales_previous_30_days) / total_sales_previous_30_days) * 100
+    else:
+        percentage_change = 0
+
+    # Format percentage change
+    percentage_change_formatted = f"{percentage_change:.2f}%"
+    change_indicator = '+' if percentage_change >= 0 else '-'
+
+    # Daily Transaction and Sales
+    transaction_count = Sales.objects.filter(date_added__date=today).count()
+    total_sales_today = Sales.objects.filter(date_added__date=today).aggregate(total=Sum('grand_total'))['total'] or 0
+
     context = {
         'categories': Products.objects.count(),
         'products': Products.objects.count(),
-        'transaction': Sales.objects.filter(date_added__date=today).count(),
-        'total_sales': Sales.objects.filter(date_added__date=today).aggregate(total=Sum('grand_total'))['total'],
+        'transaction': transaction_count,
+        'total_sales': total_sales_today,
         'low_quantity_products': low_quantity_products,
         'most_sold_products': most_sold_products,
         'sales_last_7_days': sales_for_chart_7_days,
         'sales_last_6_months': sales_for_chart_6_months,
         'most_sold_products_month': most_sold_products_month,
+        'total_sales_last_30_days': total_sales_last_30_days,  # Add this line
+        'percentage_change': percentage_change_formatted,  # Add this line
+        'change_indicator': change_indicator,  # Add this line
     }
     return render(request, 'posApp/home.html', context)
+
+
+
 
 
 
@@ -176,23 +198,7 @@ def home(request):
 
 
 
-# def home(request):
-#     categories_count = Category.objects.count()
-#     products_count = Products.objects.count()
-#     today = datetime.now().date()
-#     today_transactions = Sales.objects.filter(date_added__date=today).count()
-#     today_sales = Sales.objects.filter(date_added__date=today).aggregate(total_sales=Sum('grand_total'))['total_sales'] or 0
 
-#     low_quantity_products = Products.objects.filter(quantity__lte=models.F('low_quantity_threshold'), status=1)
-
-#     context = {
-#         'categories': categories_count,
-#         'products': products_count,
-#         'transaction': today_transactions,
-#         'total_sales': today_sales,
-#         'low_quantity_products': low_quantity_products,
-#     }
-#     return render(request, 'posApp/home.html', context)
 def about(request):
     context = {
         'page_title':'About',
@@ -418,48 +424,48 @@ def save_product(request):
             return JsonResponse({'status': 'failed', 'msg': str(e)})
 
     return JsonResponse({'status': 'failed', 'msg': 'Invalid request'})
-# @login_required
-# def save_product(request):
-#     data = request.POST
-#     resp = {'status':'failed'}
-#     id = ''
-#     if 'id' in data:
-#         id = data['id']
-#     if id.isnumeric() and int(id) > 0:
-#         check = Products.objects.exclude(id=id).filter(code=data['code']).all()
-#     else:
-#         check = Products.objects.filter(code=data['code']).all()
-#     if len(check) > 0:
-#         resp['msg'] = "Product Code Already Exists in the database"
-#     else:
-#         category = Category.objects.filter(id=data['category_id']).first()
-#         try:
-#             if id.isnumeric() and int(id) > 0:
-#                 save_product = Products.objects.filter(id=id).update(
-#                     code=data['code'],
-#                     category_id=category,
-#                     name=data['name'],
-#                     description=data['description'],
-#                     price=float(data['price']),
-#                     status=data['status'],
-#                     quantity=int(data['quantity'])  # Update quantity
-#                 )
-#             else:
-#                 save_product = Products(
-#                     code=data['code'],
-#                     category_id=category,
-#                     name=data['name'],
-#                     description=data['description'],
-#                     price=float(data['price']),
-#                     status=data['status'],
-#                     quantity=int(data['quantity'])  # Set quantity
-#                 )
-#                 save_product.save()
-#             resp['status'] = 'success'
-#             messages.success(request, 'Product Successfully saved.')
-#         except:
-#             resp['status'] = 'failed'
-#     return HttpResponse(json.dumps(resp), content_type="application/json")
+@login_required
+def save_product(request):
+    data = request.POST
+    resp = {'status':'failed'}
+    id = ''
+    if 'id' in data:
+        id = data['id']
+    if id.isnumeric() and int(id) > 0:
+        check = Products.objects.exclude(id=id).filter(code=data['code']).all()
+    else:
+        check = Products.objects.filter(code=data['code']).all()
+    if len(check) > 0:
+        resp['msg'] = "Product Code Already Exists in the database"
+    else:
+        category = Category.objects.filter(id=data['category_id']).first()
+        try:
+            if id.isnumeric() and int(id) > 0:
+                save_product = Products.objects.filter(id=id).update(
+                    code=data['code'],
+                    category_id=category,
+                    name=data['name'],
+                    description=data['description'],
+                    price=float(data['price']),
+                    status=data['status'],
+                    quantity=int(data['quantity'])  # Update quantity
+                )
+            else:
+                save_product = Products(
+                    code=data['code'],
+                    category_id=category,
+                    name=data['name'],
+                    description=data['description'],
+                    price=float(data['price']),
+                    status=data['status'],
+                    quantity=int(data['quantity'])  # Set quantity
+                )
+                save_product.save()
+            resp['status'] = 'success'
+            messages.success(request, 'Product Successfully saved.')
+        except:
+            resp['status'] = 'failed'
+    return HttpResponse(json.dumps(resp), content_type="application/json")
 
 
 @login_required
@@ -866,8 +872,4 @@ def low_quantity_products(request):
 #     sales_data = sales_items.values('product_id__name').annotate(total_sold=Sum('qty')).order_by('-total_sold')[:5]
     
 #     data = {
-#         'labels': [sale['product_id__name'] for sale in sales_data],
-#         'values': [sale['total_sold'] for sale in sales_data]
-#     }
-    
-#     return JsonResponse(data)
+#         'labels': [sale['product_id__name'] for sale in salfrom pickle import FALSE

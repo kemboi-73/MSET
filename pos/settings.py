@@ -1,6 +1,7 @@
 import os
 
 from pathlib import Path
+# import xlwt
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -18,7 +19,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    'https://2014-41-90-64-149.ngrok-free.app'
+   
 ]
 
 # Application definition
@@ -32,7 +33,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'posApp.apps.posAppConfig',
     'django.contrib.humanize',
-    'mpesa',
+    
 ]
 
 MIDDLEWARE = [
@@ -101,7 +102,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'Asia/Manila'
+TIME_ZONE = 'Africa/Nairobi'
 
 USE_I18N = True
 
